@@ -51,6 +51,11 @@ async def upload_document(file: UploadFile = File(...)):
         'status': 'success'
     }
 
+@router.get('/documents')
+async def get_documents():
+    meta = _load_meta()
+    return [{'document_id': k, **v} for k, v in meta.items()]
+
 @router.delete('/documents/{document_id}')
 async def delete_document(document_id):
     delete_collection(document_id)
