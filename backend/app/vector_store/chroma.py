@@ -1,21 +1,21 @@
 import chromadb
-from sentence_transformers import SentenceTransformer
 from app.config import settings 
+from app.vector_store.base import BaseVectorStore
+from app.core.embedder import embed_documents, embed_query
 
 _client = chromadb.PersistentClient(path=settings.CHROMA_PERSIST_DIR)
-_model = SentenceTransformer(settings.EMBEDDING_MODEL)
 
 def get_collection(document_id):
     return _client.get_or_create_collection(name=document_id)
 
 def add_chunks(document_id, chunks):
     collection = get_collection(document_id)
-    embeddings = _model.encode(chunks).tolist()
+    embeddings = embed_documents(chunks)
     ids = [f'{document_id}_{i}' for i in range(len(chunks))]
     collection.add(documents=chunks, embeddings=embeddings, ids=ids)
 
 def search(question, document_ids, top_k):
-    q_embedding = _model.encode([question]).tolist()[0]
+    q_embedding = embed_query(question)
     results = []
     for doc_id in document_ids:
         try:
@@ -37,3 +37,19 @@ def list_collections():
 
 def delete_collection(document_id):
     _client.delete_collection(document_id)
+
+class ChromaVectorStore(BaseVectorStore):
+    def __init__(self):
+        self.client = _client
+    
+    def add_chunks(self, document_id, chunks):
+        add_chunks(document_id, chunks)
+    
+    def search(self, question, document_ids, top_k):
+        return search(question, document_ids, top_k)
+    
+    def list_collections(self):
+        return list_collections()
+    
+    def delete_collection(self, document_id):
+        delete_collection(document_id)

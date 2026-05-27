@@ -1,8 +1,10 @@
-import google.generativeai as genai
+from google import genai
 from app.config import settings
 
-genai.configure(api_key=settings.GOOGLE_API_KEY)
-_model = genai.GenerativeModel(settings.LLM_MODEL)
+_client = genai.Client(
+    api_key=settings.GOOGLE_API_KEY,
+    http_options={"api_version": "v1"}
+)
 
 def generate_answer(question, context_chunks, chat_history):
     context = '\n\n---\n\n'.join(context_chunks)
@@ -16,5 +18,8 @@ def generate_answer(question, context_chunks, chat_history):
     Question: {question}
     Answer:"""
 
-    response = _model.generate_content(prompt)
+    response = _client.models.generate_content(
+        model=settings.LLM_MODEL,
+        contents=prompt,
+    )
     return response.text
